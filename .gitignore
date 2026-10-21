@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Arena development and local match data
+node_modules/
+dist/
+.local/
+reference/
+test-results/
+playwright-report/
+*.tsbuildinfo
