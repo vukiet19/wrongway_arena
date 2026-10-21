@@ -10,7 +10,7 @@ def choose_action(observation):
     other = observation["opponent"]
     row, col = other["position"]
     if abs(other["goal_row"] - row) <= 3 and observation["turn"] % 4 == 1:
-        edge = row if other["goal_row"] == 8 else row - 1
+        edge = row if other["goal_row"] > row else row - 1
         for wall in observation["legal_walls"]:
             if wall["orientation"] == "H" and wall["row"] == edge and wall["col"] <= col <= wall["col"] + 1:
                 return dict(wall, type="wall")

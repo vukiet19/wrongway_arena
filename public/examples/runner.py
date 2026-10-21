@@ -4,7 +4,8 @@
 def choose_action(observation):
     moves = observation["legal_moves"]
     distances = observation["distances"]
+    center = observation.get("board_cols", observation["board_size"]) // 2
     if not moves:
         return {"type": "pass"}
-    target = min(moves, key=lambda p: (distances[p[0]][p[1]], abs(p[1] - 4)))
+    target = min(moves, key=lambda p: (distances[p[0]][p[1]], abs(p[1] - center)))
     return {"type": "move", "to": target}

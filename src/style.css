@@ -577,6 +577,18 @@ h1 svg {
   stroke: #d9ddcc;
   stroke-width: 1;
 }
+.finish-square {
+  fill: #e9f3e9;
+  stroke: #bbcfb8;
+  stroke-dasharray: 3 3;
+}
+.enemy-line {
+  fill: none;
+  stroke: #c47e62;
+  stroke-width: 2;
+  stroke-dasharray: 4 5;
+  opacity: 0.75;
+}
 .last-square {
   fill: #dceee0;
   stroke: #81b99c;

@@ -18,7 +18,7 @@ py -3.12 tools/run.py
 
 Or double-click `start.cmd`. Open <http://127.0.0.1:8000>. Keep the terminal open while playing; press Ctrl+C there to stop the server. Setup creates `.venv`, installs the locked dependencies, and builds the static page. It does not change the course project.
 
-The original course engine must be available beside this repository at `../wrongway` and contain `arena.py`, `environment.py`, `agent_runner.py`, and `visualizer.py`. If it is elsewhere, set `WRONGWAY_REFERENCE` to its folder before starting the server:
+The original course engine must be available beside this repository at `../wrongway` and contain `arena.py`, `environment.py`, `agent_runner.py`, and `visualizer.py`. The Arena imports it unchanged for agent process limits and match orchestration, while applying its own board rules in the isolated worker. If the engine is elsewhere, set `WRONGWAY_REFERENCE` to its folder before starting the server:
 
 ```powershell
 $env:WRONGWAY_REFERENCE = 'D:\path\to\wrongway'
@@ -27,9 +27,11 @@ py -3.12 tools/run.py
 
 ## Play and inspect matches
 
-Choose two `.py` files, set the seed and turn limit, and start a match. A paired series defaults to two games and swaps player order for the second game. The Arena assigns 3 points for a win, 1 for a draw, and 0 for a loss, following agent identity across the swap. You can pause between turns, step through the game, seek on the timeline, change rounds, and download a replay in the course engine's JSON format. A downloaded replay can be opened later without a running backend.
+The Arena's rule variant keeps the 9-column game area and adds a finish row past each opponent edge, for 11 rows total. Row coordinates in actions and observations run from 0 through 10; `row_offset: -1` labels those rows as -1 through 9 on the board. The original 9×9 area is rows 1 through 9 internally, labeled 0 through 8. Reaching row 0 or 10 wins. Observations include `board_rows`, `board_cols`, and `row_offset`; new agents should read these fields instead of assuming a square 9×9 board. The current `25127400.py` agent uses fixed 9×9 indexing and needs to be adapted before it can play this Arena variant. The original course engine remains unchanged, and the official course rules are still whatever the instructor distributes.
 
-The runner applies a 5-second agent startup deadline and a 1-second deadline per action, matching the original engine configuration. A timed-out, invalid, or crashed agent is recorded in the match journal. The backend uses separate Python processes and keeps uploaded agents and match files under the ignored `.local/` directory.
+Choose two `.py` files, set the seed and turn limit, and start a match. A paired series defaults to two games and swaps player order for the second game. The Arena assigns 3 points for a win, 1 for a draw, and 0 for a loss, following agent identity across the swap. You can pause between turns, step through the game, seek on the timeline, change rounds, and download a replay. A downloaded replay can be opened later without a running backend.
+
+The runner applies a 5-second agent startup deadline and a 1-second deadline per action. A timed-out, invalid, or crashed agent is recorded in the match journal. The backend uses separate Python processes and keeps uploaded agents and match files under the ignored `.local/` directory.
 
 This local mode isolates crashes and enforces time limits, but it is not an operating-system security sandbox. Run only Python agents you trust on your computer. The Arena does not upload agents to GitHub or copy instructor files into this repository.
 
@@ -48,7 +50,7 @@ npm.cmd run build
 npm.cmd run test:e2e
 ```
 
-The backend tests cover API validation, deadlines, cancellation, paired rounds, and replay output. Frontend tests cover score identity and replay validation. Browser tests exercise uploads, a complete match, pause and resume, replay download and reload, and the mobile layout. The submission integration test uses `../agent/wrongway_agent/25127400.py` when that separate local repository is present; it is not included here. CI skips course-engine integration checks when instructor engine files are unavailable.
+The backend tests cover API validation, deadlines, cancellation, paired rounds, replay output, and both finish lines. Frontend tests cover score identity and replay validation. Browser tests exercise uploads, beyond-line wins, pause and resume, replay download and reload, and the mobile layout. CI skips course-engine integration checks when instructor engine files are unavailable.
 
 ## Design and included files
 

@@ -21,6 +21,14 @@ export class ArenaAPI {
       throw new Error('Backend chưa tìm thấy bộ Arena gốc. Kiểm tra WRONGWAY_REFERENCE.');
     if (!health.token || health.mode !== 'trusted-local')
       throw new Error('Địa chỉ này không phải Wrongway Arena backend.');
+    if (
+      health.rules?.board_rows !== 11 ||
+      health.rules?.board_cols !== 9 ||
+      health.rules?.row_offset !== -1
+    )
+      throw new Error(
+        'Backend còn chạy luật cũ. Nhấn Ctrl+C trong cửa sổ server rồi khởi động lại.',
+      );
     this.base = url.origin;
     this.token = health.token;
   }

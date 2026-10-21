@@ -6,8 +6,10 @@
   cream paper, graphite outlines, handwritten headings, teal accents, and calm
   spacing. Do not install skills from the reference website.
 - Frontend is static and GitHub Pages compatible. Backend runs locally first.
-  Use the unmodified course Arena in `../wrongway` (or WRONGWAY_REFERENCE).
-  Do not publish instructor source automatically or change its rules.
+  Import the course Arena in `../wrongway` (or WRONGWAY_REFERENCE) without
+  editing or publishing its files. Apply the Arena-only beyond-line variant in
+  `backend/rules.py`: an 11-row, 9-column board where row 0 or 10 wins.
+  Include `board_rows`, `board_cols`, and `row_offset` in states and observations.
 - Uploaded Python executes only in separate worker processes, never in the API
   process. Local execution is for trusted files; it is not an OS security sandbox.
   Bind to loopback by default, authenticate mutations, restrict origins, bound

@@ -87,7 +87,7 @@ describe('paired scoring and replay', () => {
   });
   it('rejects out-of-bounds board geometry', () => {
     const value = replay();
-    value.turns[0].state.walls.horizontal = [[8, 0]];
+    value.turns[0].state.walls.horizontal = [[10, 0]];
     expect(() => parseReplay(JSON.stringify(value))).toThrow();
   });
   it('rejects forged agent IDs that could corrupt the scoreboard', () => {
@@ -103,11 +103,18 @@ describe('paired scoring and replay', () => {
     turn.error = 'choose_action exceeded 1s action limit';
     expect(actionText(turn)).toContain('1 giây');
   });
-  it('draws 81 cells, two pawns, and no filename HTML', () => {
+  it('shows logical row labels for beyond-line destinations', () => {
+    const turn = replay().turns[0];
+    turn.action = { type: 'move', to: [10, 3] };
+    expect(actionText(turn)).toBe('Đi đến (9, 3)');
+  });
+  it('draws the beyond-line 11 by 9 board, two pawns, and no filename HTML', () => {
     const r = round();
     r.players[0].name = '<script>bad()</script>';
     const svg = boardSVG(r.initial, r);
-    expect(svg.match(/class="square/g)?.length).toBe(81);
+    expect(svg.match(/class="square/g)?.length).toBe(99);
+    expect(svg).toContain('đích thắng của A · hàng -1');
+    expect(svg).toContain('đích thắng của B · hàng 9');
     expect(svg).toContain('pawn-a');
     expect(svg).toContain('pawn-b');
     expect(svg).not.toContain('<script>');

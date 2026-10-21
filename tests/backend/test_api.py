@@ -41,6 +41,13 @@ def test_health_and_auth_boundaries(tmp_path):
         assert health.status_code == 200
         assert health.json()["timeout"] == 1.0
         assert health.json()["startup_timeout"] == 5.0
+        assert health.json()["rules"] == {
+            "board_rows": 11,
+            "board_cols": 9,
+            "row_offset": -1,
+            "goal_rows": [0, 10],
+            "win_condition": "step beyond the opponent's original goal line",
+        }
         assert client.post("/api/sessions").status_code == 401
         assert (
             client.get("/api/health", headers={"Origin": "https://untrusted.example"}).status_code
@@ -131,7 +138,7 @@ def test_timeout_consumes_one_turn_and_restarts(client):
     session_id = create(client, a=source, max_turns=4).json()["id"]
     first = client.post(f"/api/sessions/{session_id}/step").json()["events"][0]
     assert first["record"]["status"] == "timeout"
-    assert first["record"]["state"]["positions"][0] == [8, 4]
+    assert first["record"]["state"]["positions"][0] == [9, 4]
     assert first["record"]["state"]["turn"] == 1
     second = client.post(f"/api/sessions/{session_id}/step").json()["events"][0]
     assert second["record"]["status"] == "ok"
