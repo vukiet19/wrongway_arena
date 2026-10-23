@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -165,9 +165,15 @@ def create_app(reference=None, data_dir=None):
         for source, name in zip(sources, names, strict=True):
             validate_source(source, name)
         try:
-            session = await manager.create(
-                sources, names, rounds, seed, max_turns, mode=mode, human_side=human_side
-            )
+            if mode == "human-vs-agent":
+                async with manager.compute:
+                    session = await manager.create(
+                        sources, names, rounds, seed, max_turns, mode=mode, human_side=human_side
+                    )
+            else:
+                session = await manager.create(
+                    sources, names, rounds, seed, max_turns, mode=mode, human_side=human_side
+                )
         except MatchFailure as exc:
             raise HTTPException(409, str(exc)) from exc
         return {
@@ -186,6 +192,24 @@ def create_app(reference=None, data_dir=None):
             try:
                 events = await session.step()
             except (MatchFailure, BrokenPipeError, ConnectionResetError) as exc:
+                raise HTTPException(409, str(exc)) from exc
+        return {"status": session.status, "events": events}
+
+    @app.post("/api/sessions/{session_id}/action")
+    async def submit_human_action(session_id: str, payload: Annotated[dict, Body()]):
+        session = get_session(session_id)
+        state_turn = payload.get("state_turn")
+        action = payload.get("action")
+        if type(state_turn) is not int or not isinstance(action, dict):
+            raise HTTPException(422, "Lượt và hành động gửi lên không hợp lệ.")
+        if session.manifest.get("mode") != "human-vs-agent":
+            raise HTTPException(409, "Trận này không có lượt đi của người chơi.")
+        if session.lock.locked() or session.status != "waiting_human":
+            raise HTTPException(409, "Hiện không chờ lượt đi của người chơi.")
+        async with session.lock, manager.compute:
+            try:
+                events = await session.submit_human_action(state_turn, action)
+            except (MatchFailure, BrokenPipeError, ConnectionResetError, ValueError) as exc:
                 raise HTTPException(409, str(exc)) from exc
         return {"status": session.status, "events": events}
 

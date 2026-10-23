@@ -100,6 +100,9 @@ class Session:
                 }
             batch.append(event)
             self.events.append(event)
+            if kind == "human_turn":
+                self.status = "waiting_human"
+                break
             if kind in ("complete", "failed", "stopped"):
                 self.status = kind
                 if kind == "failed":
@@ -116,6 +119,17 @@ class Session:
             raise MatchFailure("Trận không còn hoạt động. Hãy tạo trận mới.")
         self.status = "thinking"
         self.process.stdin.write(b'{"type":"next"}\n')
+        await self.process.stdin.drain()
+        return await self._batch()
+
+    async def submit_human_action(self, state_turn, action):
+        if self.manifest.get("mode") != "human-vs-agent":
+            raise MatchFailure("Trận này không nhận lượt đi của người chơi.")
+        if self.status != "waiting_human":
+            raise MatchFailure("Hiện không chờ lượt đi của người chơi.")
+        self.status = "thinking"
+        message = {"type": "human_action", "state_turn": state_turn, "action": action}
+        self.process.stdin.write((json.dumps(message, allow_nan=False) + "\n").encode("utf-8"))
         await self.process.stdin.drain()
         return await self._batch()
 
