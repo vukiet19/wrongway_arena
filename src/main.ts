@@ -184,15 +184,25 @@ function render() {
       ? `${Math.max(1, Math.round(file.size / 1024))} KB · đã chọn`
       : 'hoặc bấm để chọn file';
     q(`#remove-${i}`).hidden = !file;
-    const side = round.players.findIndex((p) => (p.agent ?? p.id) === i);
+    const agentSide = humanMatch
+      ? round.players.findIndex((player) => player.kind === 'agent')
+      : 1 - Number(q<HTMLSelectElement>('#human-side').value);
+    const side = humanMatch
+      ? i === 0
+        ? agentSide
+        : 1 - agentSide
+      : isHumanMode
+        ? i === 0
+          ? agentSide
+          : 1 - agentSide
+        : round.players.findIndex((p) => (p.agent ?? p.id) === i);
     q(`#wall-count-${i}`).textContent = String(state.walls_remaining[side]);
     q(`#agent-side-${i}`).textContent = `Xuất phát phía ${side === 0 ? 'dưới' : 'trên'}`;
+    const agentThinking = humanMatch
+      ? i === 0 && round.players[state.current_player]?.kind === 'agent'
+      : agentFor(round, state.current_player) === i;
     q(`#agent-state-${i}`).textContent =
-      busy && agentFor(round, state.current_player) === i
-        ? 'Đang suy nghĩ…'
-        : file
-          ? 'Đã sẵn sàng'
-          : 'Chưa có agent';
+      busy && agentThinking ? 'Đang suy nghĩ…' : file ? 'Đã sẵn sàng' : 'Chưa có agent';
   }
   const points = scores(rounds);
   q('#score-card').toggleAttribute('hidden', humanMatch);

@@ -25,6 +25,7 @@ test('human mode selects one agent and a side while preserving default agent ser
   await expect(page.locator('#upload-1')).toBeHidden();
   await expect(page.locator('#paired')).toBeHidden();
   await expect(page.locator('#human-side')).toBeVisible();
+  await expect(page.locator('#agent-side-0')).toHaveText('Xuất phát phía trên');
   await page.locator('#file-0').setInputFiles(path.resolve('public/examples/runner.py'));
   await expect(page.locator('#start')).toBeEnabled();
   await page.locator('#human-side').selectOption('0');
@@ -86,6 +87,7 @@ test('the top-side choice lets the agent open automatically', async ({ page }) =
   await page.locator('#file-0').setInputFiles(path.resolve('public/examples/runner.py'));
   await page.locator('#start').click();
   await expect(page.locator('#turn-counter')).toHaveText('Lượt 1 / 1');
+  await expect(page.locator('#agent-side-0')).toHaveText('Xuất phát phía dưới');
   await expect(page.locator('#board-status')).toHaveText('Lượt của bạn');
   await expect(page.locator('#turn-log')).toContainText('runner.py ·');
   await expect(page.locator('#human-controls')).toBeVisible();
