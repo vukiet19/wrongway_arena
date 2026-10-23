@@ -138,19 +138,36 @@ def create_app(reference=None, data_dir=None):
     @app.post("/api/sessions", status_code=201)
     async def create_session(
         agent_a: Annotated[UploadFile, File()],
-        agent_b: Annotated[UploadFile, File()],
+        agent_b: Annotated[UploadFile | None, File()] = None,
         rounds: Annotated[int, Form(ge=1, le=2)] = 2,
         seed: Annotated[int, Form(ge=0, le=2**31 - 1)] = 0,
         max_turns: Annotated[int, Form(ge=2, le=500)] = 500,
+        mode: Annotated[str, Form()] = "agent-vs-agent",
+        human_side: Annotated[int | None, Form()] = None,
     ):
+        if mode not in ("agent-vs-agent", "human-vs-agent"):
+            raise HTTPException(422, "Chế độ trận đấu không hợp lệ.")
+        if mode == "human-vs-agent":
+            if agent_b is not None:
+                raise HTTPException(422, "Chế độ người đấu agent chỉ nhận một file agent.")
+            if human_side not in (0, 1):
+                raise HTTPException(422, "Hãy chọn bên dưới (0) hoặc bên trên (1).")
+            rounds = 1
+        elif agent_b is None:
+            raise HTTPException(422, "Chế độ agent đấu agent cần đủ hai file agent.")
+        elif human_side is not None:
+            raise HTTPException(422, "Chỉ chọn bên khi đấu với agent.")
         if not (reference / "arena.py").is_file():
             raise HTTPException(503, "Không tìm thấy bộ Arena. Kiểm tra WRONGWAY_REFERENCE.")
-        sources = [await file.read(MAX_SOURCE_BYTES + 1) for file in (agent_a, agent_b)]
-        names = [clean_name(file.filename) for file in (agent_a, agent_b)]
+        uploads = [agent_a] if agent_b is None else [agent_a, agent_b]
+        sources = [await file.read(MAX_SOURCE_BYTES + 1) for file in uploads]
+        names = [clean_name(file.filename) for file in uploads]
         for source, name in zip(sources, names, strict=True):
             validate_source(source, name)
         try:
-            session = await manager.create(sources, names, rounds, seed, max_turns)
+            session = await manager.create(
+                sources, names, rounds, seed, max_turns, mode=mode, human_side=human_side
+            )
         except MatchFailure as exc:
             raise HTTPException(409, str(exc)) from exc
         return {

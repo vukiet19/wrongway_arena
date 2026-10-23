@@ -156,7 +156,9 @@ class Manager:
         self.sessions = {}
         self.compute = asyncio.Lock()  # Keep timed agent calls sequential on this machine.
 
-    async def create(self, sources, names, rounds, seed, max_turns):
+    async def create(
+        self, sources, names, rounds, seed, max_turns, mode="agent-vs-agent", human_side=None
+    ):
         await self.expire()
         if len(self.sessions) >= MAX_SESSIONS:
             raise MatchFailure("Đã có 4 trận đang mở. Hãy đóng một trận trước.")
@@ -170,6 +172,8 @@ class Manager:
             "rounds": rounds,
             "seed": seed,
             "max_turns": max_turns,
+            "mode": mode,
+            "human_side": human_side,
         }
         session = Session(folder, manifest)
         self.sessions[session.id] = session
