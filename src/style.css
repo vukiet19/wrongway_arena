@@ -594,6 +594,33 @@ h1 svg {
   width: 100%;
   overflow: visible;
 }
+.human-controls {
+  display: grid;
+  gap: 8px;
+  padding: 12px 10px 7px;
+}
+.human-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.human-tools button {
+  border: 1px solid #bcc7b7;
+  border-radius: 20px;
+  background: #fffefa;
+  color: #405448;
+  padding: 7px 12px;
+  font-size: 10px;
+}
+.human-tools button[aria-pressed='true'] {
+  border-color: var(--teal-dark);
+  background: #e4f2e9;
+  color: #126b5a;
+}
+#human-action-hint {
+  color: #738071;
+  font-size: 10px;
+}
 .square {
   fill: #f4f3e9;
   stroke: #d9ddcc;
@@ -611,6 +638,19 @@ h1 svg {
   fill: #dceee0;
   stroke: #81b99c;
   stroke-width: 1.5;
+}
+.move-target {
+  cursor: pointer;
+  fill: #cce8d7;
+  stroke: #27836d;
+  stroke-width: 2.5;
+}
+.move-target:hover,
+.move-target:focus-visible {
+  fill: #a9dbc2;
+  stroke: #145f53;
+  stroke-width: 4;
+  outline: none;
 }
 .axis {
   font:
@@ -641,6 +681,29 @@ h1 svg {
   stroke: #516653;
   stroke-width: 7;
   stroke-linecap: round;
+}
+.wall-target {
+  fill: #159078;
+  stroke: #f7fffa;
+  stroke-width: 1.5;
+  opacity: 0.65;
+  cursor: pointer;
+}
+.wall-target-visual {
+  fill: none;
+  stroke: #159078;
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.22;
+  pointer-events: none;
+}
+.wall-target:hover,
+.wall-target:focus-visible {
+  opacity: 1;
+  stroke: #0b705e;
+  stroke-width: 2.5;
+  r: 9px;
+  outline: none;
 }
 .shadow-wall {
   stroke: #3c4f33;

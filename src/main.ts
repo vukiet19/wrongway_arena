@@ -68,7 +68,7 @@ q('#app').innerHTML = `
         <p class="local-note">${icon('link')} Python chạy trên máy bạn.<br>Chỉ dùng những file bạn tin cậy.</p>
       </aside>
       <section class="board-column" aria-label="Bàn cờ và điều khiển">
-        <div class="board-paper"><div class="board-heading"><div><span class="live-dot"></span><span id="board-status">Sẵn sàng lên sàn</span></div><label class="round-picker"><span class="sr-only">Chọn ván</span><select id="round-select"><option value="0">Ván 1</option></select></label></div><div id="board" tabindex="0"></div><div class="board-footnote"><span><i class="legend-line"></i> hàng đích</span><span>9 × 9 ô · hàng đầu/cuối là đích</span></div></div>
+        <div class="board-paper"><div class="board-heading"><div><span class="live-dot"></span><span id="board-status">Sẵn sàng lên sàn</span></div><label class="round-picker"><span class="sr-only">Chọn ván</span><select id="round-select"><option value="0">Ván 1</option></select></label></div><div id="human-controls" class="human-controls" hidden role="toolbar" aria-label="Chọn hành động"><div class="human-tools"><button id="tool-move" data-tool="move" aria-pressed="true">Đi quân</button><button id="tool-horizontal" data-tool="horizontal" aria-pressed="false">Tường ngang</button><button id="tool-vertical" data-tool="vertical" aria-pressed="false">Tường dọc</button></div><span id="human-action-hint">Chọn ô được đánh dấu trên bàn cờ.</span></div><div id="board" tabindex="0"></div><div class="board-footnote"><span><i class="legend-line"></i> hàng đích</span><span>9 × 9 ô · hàng đầu/cuối là đích</span></div></div>
         <div class="playback"><div class="playback-main"><button id="previous" class="icon-button transport" aria-label="Lùi một lượt" disabled>${icon('back')}</button><button id="play" class="button play-button" disabled>${icon('play')}<span>Tiếp tục</span></button><button id="next" class="icon-button transport" aria-label="Tiến một lượt" disabled>${icon('next')}</button><div class="speed-control"><label for="speed">Tốc độ xem</label><select id="speed"><option value="1200">0.5×</option><option value="600" selected>1×</option><option value="200">2×</option><option value="0">Nhanh nhất</option></select></div></div><div class="timeline-row"><span id="turn-counter">Lượt <b>0</b> / 0</span><input id="timeline" type="range" min="0" max="0" value="0" aria-label="Xem lại lượt" disabled><button id="live" class="live-button" disabled>Về hiện tại</button></div><div id="result-note" class="result-note" role="status">Chọn hai đối thủ, rồi bắt đầu câu chuyện của chúng.</div></div>
       </section>
       <aside class="insights-column"><div class="section-heading"><span class="section-number">02</span><h2>Theo dõi trận</h2></div><section class="score-card"><div class="card-title"><h3>Bảng điểm</h3><span>thắng 3 · hòa 1</span></div><div class="score-row">${[0, 1].map((i) => `<div class="score-agent agent-${i === 0 ? 'a' : 'b'}"><span class="agent-token">${i === 0 ? 'A' : 'B'}</span><strong id="score-${i}">0</strong><span id="score-name-${i}" class="score-name">Agent ${i === 0 ? 'A' : 'B'}</span><small id="wins-${i}">0 thắng · 0 hòa</small></div>`).join('')}<span class="versus">:</span></div><p id="series-progress">Chưa có ván hoàn thành</p></section>
@@ -94,6 +94,7 @@ let session = '',
   cursor = 0;
 let seriesTotal = 0;
 let humanPrompt: HumanTurnEvent | null = null;
+let boardTool: 'move' | 'horizontal' | 'vertical' = 'move';
 let timer: ReturnType<typeof setTimeout> | undefined;
 const placeholder: Round = {
   players: [
@@ -107,6 +108,19 @@ const placeholder: Round = {
 
 function humanMode() {
   return q<HTMLSelectElement>('#mode').value === 'human-vs-agent';
+}
+
+function canHumanAct() {
+  const round = rounds[selectedRound];
+  return Boolean(
+    humanPrompt &&
+    sessionStatus === 'waiting_human' &&
+    !busy &&
+    selectedRound === rounds.length - 1 &&
+    round &&
+    humanPrompt.round === selectedRound &&
+    cursor === round.turns.length,
+  );
 }
 
 function notify(message: string) {
@@ -128,7 +142,26 @@ function atEnd() {
 function render() {
   const round = rounds[selectedRound] ?? placeholder;
   const state = cursor ? (round.turns[cursor - 1]?.state ?? round.initial) : round.initial;
-  q('#board').innerHTML = boardSVG(state, round, round.turns[cursor - 1]);
+  const humanActive = canHumanAct();
+  const interaction = humanPrompt
+    ? {
+        active: humanActive,
+        mode: boardTool,
+        legalMoves: humanPrompt.legal_moves,
+        legalWalls: humanPrompt.legal_walls,
+      }
+    : undefined;
+  q('#board').innerHTML = boardSVG(state, round, round.turns[cursor - 1], interaction);
+  q('#human-controls').toggleAttribute('hidden', !humanActive);
+  q('#human-action-hint').textContent =
+    boardTool === 'move'
+      ? 'Chọn ô được đánh dấu trên bàn cờ.'
+      : `Chọn vị trí tường ${boardTool === 'horizontal' ? 'ngang' : 'dọc'} được đánh dấu.`;
+  for (const tool of ['move', 'horizontal', 'vertical'] as const)
+    q<HTMLButtonElement>(`#tool-${tool === 'move' ? 'move' : tool}`).setAttribute(
+      'aria-pressed',
+      String(boardTool === tool),
+    );
   const isHumanMode = humanMode();
   q('#upload-1').toggleAttribute('hidden', isHumanMode);
   q('#paired-option').toggleAttribute('hidden', isHumanMode);
@@ -274,6 +307,9 @@ function apply(events: Event[]) {
       humanPrompt = null;
     } else if (event.type === 'human_turn') {
       humanPrompt = event;
+      boardTool = 'move';
+    } else if (event.type === 'action_rejected') {
+      notify('Nước đi không hợp lệ hoặc đã cũ. Bàn cờ đã được cập nhật.');
     } else if (event.type === 'round_end') rounds[event.round].summary = event.summary;
   }
 }
@@ -394,6 +430,27 @@ async function start() {
   }
 }
 
+async function submitHumanAction(action: Record<string, unknown>) {
+  if (!canHumanAct() || !humanPrompt || !session) return;
+  const stateTurn = humanPrompt.state_turn;
+  busy = true;
+  sessionStatus = 'thinking';
+  humanPrompt = null;
+  render();
+  try {
+    const batch = await api.submitHumanAction(session, stateTurn, action);
+    apply(batch.events);
+    sessionStatus = batch.status;
+    seriesTotal = batch.rounds ?? 1;
+  } catch (error) {
+    notify(message(error));
+    if (session) await syncSession().catch(() => {});
+  } finally {
+    busy = false;
+    render();
+  }
+}
+
 async function connect(showError = false) {
   const value = q<HTMLInputElement>('#backend-url').value;
   q<HTMLButtonElement>('#connect-submit').disabled = true;
@@ -466,6 +523,33 @@ for (const index of [0, 1]) {
 }
 q('#start').addEventListener('click', () => void start());
 q<HTMLSelectElement>('#mode').addEventListener('change', render);
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-tool]'))
+  button.addEventListener('click', () => {
+    if (!canHumanAct()) return;
+    boardTool = button.dataset.tool as 'move' | 'horizontal' | 'vertical';
+    render();
+  });
+q('#board').addEventListener('click', (event) => {
+  const target = (event.target as HTMLElement).closest<SVGElement>('[data-action]');
+  if (!target || !canHumanAct()) return;
+  const row = Number(target.dataset.row),
+    col = Number(target.dataset.col);
+  if (target.dataset.action === 'move') void submitHumanAction({ type: 'move', to: [row, col] });
+  else if (target.dataset.action === 'wall')
+    void submitHumanAction({
+      type: 'wall',
+      orientation: target.dataset.orientation,
+      row,
+      col,
+    });
+});
+q('#board').addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const target = (event.target as HTMLElement).closest<SVGElement>('[data-action]');
+  if (!target || !canHumanAct()) return;
+  event.preventDefault();
+  target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+});
 q('#demo').addEventListener('click', async () => {
   try {
     for (const [index, name] of ['runner.py', 'barricade.py'].entries()) {

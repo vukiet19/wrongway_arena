@@ -132,3 +132,37 @@ describe('paired scoring and replay', () => {
     expect(svg).not.toContain('<script>');
   });
 });
+
+describe('human board interactions', () => {
+  it('marks only engine-supplied legal destinations and active orientation walls', () => {
+    const r = round();
+    const interaction = {
+      active: true,
+      mode: 'move' as const,
+      legalMoves: [
+        [7, 4],
+        [8, 3],
+      ] as [number, number][],
+      legalWalls: [
+        { orientation: 'H' as const, row: 2, col: 3 },
+        { orientation: 'V' as const, row: 4, col: 1 },
+      ],
+    };
+    const moves = boardSVG(r.initial, r, undefined, interaction);
+    expect(moves.match(/data-action="move"/g)).toHaveLength(2);
+    expect(moves).toContain('data-row="7" data-col="4"');
+    expect(moves).not.toContain('data-row="6" data-col="4"');
+    expect(moves).not.toContain('data-orientation="H"');
+
+    const horizontal = boardSVG(r.initial, r, undefined, {
+      ...interaction,
+      mode: 'horizontal',
+    });
+    expect(horizontal.match(/data-action="wall"/g)).toHaveLength(1);
+    expect(horizontal).toContain('data-orientation="H" data-row="2" data-col="3"');
+    expect(horizontal).not.toContain('data-orientation="V"');
+
+    const inactive = boardSVG(r.initial, r, undefined, { ...interaction, active: false });
+    expect(inactive).not.toContain('data-action=');
+  });
+});

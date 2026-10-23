@@ -28,11 +28,22 @@ export class ArenaAPI {
     this.base = url.origin;
     this.token = health.token;
   }
-  async request<T>(path: string, method = 'GET', body?: FormData): Promise<T> {
+  async request<T>(
+    path: string,
+    method = 'GET',
+    body?: FormData | Record<string, unknown>,
+  ): Promise<T> {
+    const headers: Record<string, string> = { 'X-Arena-Token': this.token };
+    let requestBody: BodyInit | undefined;
+    if (body instanceof FormData) requestBody = body;
+    else if (body) {
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(body);
+    }
     const response = await fetch(`${this.base}/api${path}`, {
       method,
-      body,
-      headers: { 'X-Arena-Token': this.token },
+      body: requestBody,
+      headers,
       signal: AbortSignal.timeout(16000),
     });
     if (!response.ok) {
@@ -44,5 +55,16 @@ export class ArenaAPI {
       throw new Error(detail);
     }
     return response.status === 204 ? (undefined as T) : response.json();
+  }
+
+  submitHumanAction(
+    sessionId: string,
+    stateTurn: number,
+    action: Record<string, unknown>,
+  ): Promise<Batch> {
+    return this.request(`/sessions/${sessionId}/action`, 'POST', {
+      state_turn: stateTurn,
+      action,
+    });
   }
 }

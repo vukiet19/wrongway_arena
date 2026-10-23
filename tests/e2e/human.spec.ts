@@ -30,4 +30,26 @@ test('human mode selects one agent and a side while preserving default agent ser
   await page.locator('#start').click();
   await expect(page.locator('#board-status')).toHaveText('Lượt của bạn');
   await expect(page.locator('#stop')).toBeEnabled();
+  await expect(page.locator('#human-controls')).toBeVisible();
+  await expect(page.locator('#board [data-action="move"]')).not.toHaveCount(0);
+  await page.locator('#board [data-action="move"]').first().click();
+  await expect(page.locator('#turn-counter')).toHaveText('Lượt 2 / 2');
+  await expect(page.locator('#board [data-action="move"]')).not.toHaveCount(0);
+
+  await page.locator('#tool-horizontal').click();
+  const wallTargets = page.locator('#board [data-action="wall"]');
+  await expect(wallTargets.first()).toHaveAttribute('data-orientation', 'H');
+  expect(
+    await wallTargets.evaluateAll((targets) =>
+      targets.every((target) => target.getAttribute('data-orientation') === 'H'),
+    ),
+  ).toBe(true);
+  await wallTargets.first().click();
+  await expect(page.locator('#turn-counter')).toHaveText('Lượt 4 / 4');
+
+  await page.locator('#timeline').fill('0');
+  await expect(page.locator('#human-controls')).toBeHidden();
+  await expect(page.locator('#board [data-action]')).toHaveCount(0);
+  await page.locator('#live').click();
+  await expect(page.locator('#human-controls')).toBeVisible();
 });
