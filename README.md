@@ -18,7 +18,7 @@ py -3.12 tools/run.py
 
 Or double-click `start.cmd`. Open <http://127.0.0.1:8000>. Keep the terminal open while playing; press Ctrl+C there to stop the server. Setup creates `.venv`, installs the locked dependencies, and builds the static page. It does not change the course project.
 
-The original course engine must be available beside this repository at `../wrongway` and contain `arena.py`, `environment.py`, `agent_runner.py`, and `visualizer.py`. The Arena imports it unchanged for agent process limits and match orchestration, while applying its own board rules in the isolated worker. If the engine is elsewhere, set `WRONGWAY_REFERENCE` to its folder before starting the server:
+The original course engine must be available beside this repository at `../wrongway` and contain `arena.py`, `environment.py`, `agent_runner.py`, and `visualizer.py`. The Arena imports and runs it unchanged for board rules, agent process limits, and match orchestration. The board is 9×9; each player wins by reaching the opposite edge row (row 0 or row 8). If the engine is elsewhere, set `WRONGWAY_REFERENCE` to its folder before starting the server:
 
 ```powershell
 $env:WRONGWAY_REFERENCE = 'D:\path\to\wrongway'
@@ -27,7 +27,7 @@ py -3.12 tools/run.py
 
 ## Play and inspect matches
 
-The Arena's rule variant keeps the 9-column game area and adds a finish row past each opponent edge, for 11 rows total. Row coordinates in actions and observations run from 0 through 10; `row_offset: -1` labels those rows as -1 through 9 on the board. The original 9×9 area is rows 1 through 9 internally, labeled 0 through 8. Reaching row 0 or 10 wins. Observations include `board_rows`, `board_cols`, and `row_offset`; new agents should read these fields instead of assuming a square 9×9 board. The current `25127400.py` agent uses fixed 9×9 indexing and needs to be adapted before it can play this Arena variant. The original course engine remains unchanged, and the official course rules are still whatever the instructor distributes.
+The board has 9 rows and 9 columns. The first row (0) and last row (8) are goal rows, highlighted on the board; a player wins as soon as their pawn reaches the opposite goal row. Observations and actions follow the original course engine format, so agents written for the course rules can play directly.
 
 Choose two `.py` files, set the seed and turn limit, and start a match. A paired series defaults to two games and swaps player order for the second game. The Arena assigns 3 points for a win, 1 for a draw, and 0 for a loss, following agent identity across the swap. You can pause between turns, step through the game, seek on the timeline, change rounds, and download a replay. A downloaded replay can be opened later without a running backend.
 
@@ -50,7 +50,7 @@ npm.cmd run build
 npm.cmd run test:e2e
 ```
 
-The backend tests cover API validation, deadlines, cancellation, paired rounds, replay output, and both finish lines. Frontend tests cover score identity and replay validation. Browser tests exercise uploads, beyond-line wins, pause and resume, replay download and reload, and the mobile layout. CI skips course-engine integration checks when instructor engine files are unavailable.
+The backend tests cover API validation, deadlines, cancellation, paired rounds, replay output, and both goal rows. Frontend tests cover score identity, replay validation, and goal-row rendering. Browser tests exercise uploads, goal-row wins, pause and resume, replay download and reload, and the mobile layout. CI skips course-engine integration checks when instructor engine files are unavailable.
 
 ## Design and included files
 

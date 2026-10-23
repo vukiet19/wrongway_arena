@@ -5,9 +5,8 @@ export function boardSVG(state: State, round: Round, last?: Turn): string {
     top = 62,
     size = 44,
     pitch = 51,
-    rows = state.board_rows ?? state.board_size,
-    cols = state.board_cols ?? state.board_size,
-    rowOffset = state.row_offset ?? 0,
+    rows = state.board_size,
+    cols = state.board_size,
     width = left * 2 + (cols - 1) * pitch + size,
     boardBottom = top + (rows - 1) * pitch + size,
     height = boardBottom + 94;
@@ -17,15 +16,15 @@ export function boardSVG(state: State, round: Round, last?: Turn): string {
     for (let c = 0; c < cols; c++) {
       const selected =
         last?.action?.type === 'move' && last.action.to?.[0] === r && last.action.to?.[1] === c;
-      const finish = r === 0 || r === rows - 1;
-      cells += `<rect x="${left + c * pitch}" y="${top + r * pitch}" width="${size}" height="${size}" rx="6" class="square${finish ? ' finish-square' : ''}${selected ? ' last-square' : ''}"/>`;
+      const goal = r === 0 ? ' goal-row-a' : r === rows - 1 ? ' goal-row-b' : '';
+      cells += `<rect x="${left + c * pitch}" y="${top + r * pitch}" width="${size}" height="${size}" rx="6" class="square${goal}${selected ? ' last-square' : ''}"/>`;
     }
   let axes = '';
   const axisY = boardBottom + 22;
   for (let c = 0; c < cols; c++)
     axes += `<text x="${left + c * pitch + size / 2}" y="${axisY}" class="axis">${c}</text>`;
   for (let r = 0; r < rows; r++)
-    axes += `<text x="28" y="${top + r * pitch + size / 2 + 4}" class="axis">${r + rowOffset}</text>`;
+    axes += `<text x="28" y="${top + r * pitch + size / 2 + 4}" class="axis">${r}</text>`;
   let walls = '';
   for (const orientation of ['horizontal', 'vertical'] as const) {
     for (const [r, c] of state.walls[orientation]) {
@@ -49,12 +48,11 @@ export function boardSVG(state: State, round: Round, last?: Turn): string {
   const right = left + (cols - 1) * pitch + size;
   const topRail = top - 17;
   const bottomRail = boardBottom + 38;
-  const lines = `<path d="M${left + 6} ${top + pitch - 3} Q${(left + right) / 2} ${top + pitch} ${right - 6} ${top + pitch - 3}" class="enemy-line"/><path d="M${left + 6} ${top + (rows - 1) * pitch - 3} Q${(left + right) / 2} ${top + (rows - 1) * pitch} ${right - 6} ${top + (rows - 1) * pitch - 3}" class="enemy-line"/>`;
-  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Bàn cờ Wrongway ${rows} hàng nhân ${cols} cột. Phải bước qua vạch địch để tới hàng đích.">
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Bàn cờ Wrongway ${rows} hàng nhân ${cols} cột. Hàng đầu và hàng cuối là hàng đích.">
     <path d="M${left + 6} ${topRail} Q${(left + right) / 2} ${topRail - 4} ${right - 6} ${topRail}" class="goal goal-${mark(0).toLowerCase()}"/>
-    <text x="${(left + right) / 2}" y="${topRail - 17}" class="goal-label">đích thắng của ${mark(0)} · hàng ${rowOffset}</text>
-    ${cells}${lines}${axes}${walls}${pawns}
+    <text x="${(left + right) / 2}" y="${topRail - 17}" class="goal-label">đích thắng của ${mark(0)} · hàng 0</text>
+    ${cells}${axes}${walls}${pawns}
     <path d="M${left + 6} ${bottomRail} Q${(left + right) / 2} ${bottomRail + 5} ${right - 6} ${bottomRail}" class="goal goal-${mark(1).toLowerCase()}"/>
-    <text x="${(left + right) / 2}" y="${bottomRail + 22}" class="goal-label">đích thắng của ${mark(1)} · hàng ${rows - 1 + rowOffset}</text>
+    <text x="${(left + right) / 2}" y="${bottomRail + 22}" class="goal-label">đích thắng của ${mark(1)} · hàng 8</text>
   </svg>`;
 }

@@ -1,9 +1,6 @@
 export type Cell = [number, number];
 export interface State {
   board_size: number;
-  board_rows?: number;
-  board_cols?: number;
-  row_offset?: number;
   positions: [Cell, Cell];
   goal_rows: number[];
   walls_remaining: number[];
@@ -67,14 +64,11 @@ export type Event =
 
 export const initialState = (): State => ({
   board_size: 9,
-  board_rows: 11,
-  board_cols: 9,
-  row_offset: -1,
   positions: [
-    [9, 4],
-    [1, 4],
+    [8, 4],
+    [0, 4],
   ],
-  goal_rows: [0, 10],
+  goal_rows: [0, 8],
   walls_remaining: [10, 10],
   walls: { horizontal: [], vertical: [] },
   current_player: 0,
@@ -109,35 +103,26 @@ export function scores(rounds: Round[]): { points: number; wins: number; draws: 
   return result;
 }
 
-function validCell(value: unknown, rows: number, cols = rows): value is Cell {
+function validCell(value: unknown, limit: number): value is Cell {
   return (
     Array.isArray(value) &&
     value.length === 2 &&
     Number.isInteger(value[0]) &&
     value[0] >= 0 &&
-    value[0] < rows &&
+    value[0] < limit &&
     Number.isInteger(value[1]) &&
     value[1] >= 0 &&
-    value[1] < cols
+    value[1] < limit
   );
 }
 function validState(value: unknown): value is State {
   const s = value as State;
-  const rows = s?.board_rows ?? s?.board_size;
-  const cols = s?.board_cols ?? s?.board_size;
   return (
     !!s &&
-    Number.isInteger(rows) &&
-    Number.isInteger(cols) &&
-    rows! > 0 &&
-    cols! > 0 &&
-    rows! <= 50 &&
-    cols! <= 50 &&
-    rows! * cols! <= 900 &&
-    (s.row_offset === undefined || Number.isInteger(s.row_offset)) &&
+    s.board_size === 9 &&
     Array.isArray(s.positions) &&
     s.positions.length === 2 &&
-    s.positions.every((p) => validCell(p, rows!, cols!)) &&
+    s.positions.every((p) => validCell(p, s.board_size)) &&
     Array.isArray(s.walls_remaining) &&
     s.walls_remaining.length === 2 &&
     s.walls_remaining.every((n) => Number.isInteger(n) && n >= 0 && n <= 10) &&
@@ -147,7 +132,7 @@ function validState(value: unknown): value is State {
       return (
         Array.isArray(list) &&
         list.length <= 20 &&
-        list.every((p) => validCell(p, rows! - 1, cols! - 1))
+        list.every((p) => validCell(p, s.board_size - 1))
       );
     }) &&
     [0, 1].includes(s.current_player) &&
@@ -232,11 +217,11 @@ export function describe(turn: Turn): string {
     Array.isArray(action.to) &&
     action.to.length === 2 &&
     action.to[0] >= 0 &&
-    action.to[0] < (turn.state.board_rows ?? turn.state.board_size) &&
+    action.to[0] < turn.state.board_size &&
     action.to[1] >= 0 &&
-    action.to[1] < (turn.state.board_cols ?? turn.state.board_size)
+    action.to[1] < turn.state.board_size
   )
-    return `Đi đến (${action.to[0] + (turn.state.row_offset ?? 0)}, ${action.to[1]})`;
+    return `Đi đến (${action.to[0]}, ${action.to[1]})`;
   if (action?.type === 'wall')
     return `Đặt tường ${action.orientation === 'H' ? 'ngang' : 'dọc'} (${action.row}, ${action.col})`;
   return 'Nhường lượt';

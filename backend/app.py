@@ -119,13 +119,7 @@ def create_app(reference=None, data_dir=None):
             "token": token,
             "engine_available": available,
             "mode": "trusted-local",
-            "rules": {
-                "board_rows": 11,
-                "board_cols": 9,
-                "row_offset": -1,
-                "goal_rows": [0, 10],
-                "win_condition": "step beyond the opponent's original goal line",
-            },
+            "rules": {"board_size": 9, "goal_rows": [0, 8]},
             "timeout": 1.0,
             "startup_timeout": 5.0,
             "engine_sha256": {

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 
-test('agents must cross the enemy line before a match ends', async ({ page, request }, info) => {
+test('the opposing edge rows end a match on the 9 by 9 board', async ({ page, request }, info) => {
   test.setTimeout(65_000);
   await page.goto('/');
   await expect(page.locator('#connection-label')).toHaveText('Backend đã kết nối');
@@ -20,15 +20,13 @@ test('agents must cross the enemy line before a match ends', async ({ page, requ
       await request.get(`/api/sessions/${id}/replay/0`, { headers: { 'X-Arena-Token': token } })
     ).json();
     const state = replay.final_state;
-    expect(state.board_rows).toBe(11);
-    expect(state.board_cols).toBe(9);
-    expect(state.row_offset).toBe(-1);
-    expect(state.goal_rows).toEqual([0, 10]);
+    expect(state.board_size).toBe(9);
+    expect(state.goal_rows).toEqual([0, 8]);
     expect(state.done).toBe(true);
     expect(state.termination_reason).toBe('goal');
     expect(state.positions[replay.winner][0]).toBe(state.goal_rows[replay.winner]);
     expect(replay.turns.every((turn: { status: string }) => turn.status === 'ok')).toBe(true);
-    await page.screenshot({ path: info.outputPath('beyond-line-win.png'), fullPage: true });
+    await page.screenshot({ path: info.outputPath('goal-row-win.png'), fullPage: true });
   } finally {
     const id = await page.evaluate(() => sessionStorage.getItem('wrongway-session'));
     const { token } = await (await request.get('/api/health')).json();

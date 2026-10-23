@@ -103,18 +103,30 @@ describe('paired scoring and replay', () => {
     turn.error = 'choose_action exceeded 1s action limit';
     expect(actionText(turn)).toContain('1 giây');
   });
-  it('shows logical row labels for beyond-line destinations', () => {
-    const turn = replay().turns[0];
-    turn.action = { type: 'move', to: [10, 3] };
-    expect(actionText(turn)).toBe('Đi đến (9, 3)');
+  it('uses the two board edges as the opposing goal rows', () => {
+    expect(initialState()).toMatchObject({
+      board_size: 9,
+      positions: [
+        [8, 4],
+        [0, 4],
+      ],
+      goal_rows: [0, 8],
+    });
   });
-  it('draws the beyond-line 11 by 9 board, two pawns, and no filename HTML', () => {
+  it('describes moves using the 9 by 9 board coordinates', () => {
+    const turn = replay().turns[0];
+    turn.action = { type: 'move', to: [8, 3] };
+    expect(actionText(turn)).toBe('Đi đến (8, 3)');
+  });
+  it('draws a 9 by 9 board with the first and last rows highlighted as goals', () => {
     const r = round();
     r.players[0].name = '<script>bad()</script>';
     const svg = boardSVG(r.initial, r);
-    expect(svg.match(/class="square/g)?.length).toBe(99);
-    expect(svg).toContain('đích thắng của A · hàng -1');
-    expect(svg).toContain('đích thắng của B · hàng 9');
+    expect(svg.match(/class="square/g)?.length).toBe(81);
+    expect(svg.match(/goal-row-a/g)?.length).toBe(9);
+    expect(svg.match(/goal-row-b/g)?.length).toBe(9);
+    expect(svg).toContain('đích thắng của A · hàng 0');
+    expect(svg).toContain('đích thắng của B · hàng 8');
     expect(svg).toContain('pawn-a');
     expect(svg).toContain('pawn-b');
     expect(svg).not.toContain('<script>');

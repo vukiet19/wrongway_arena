@@ -26,9 +26,7 @@ def advance():
 
 def main():
     manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-    from rules import install_beyond_line_rules
-
-    install_beyond_line_rules(Path(manifest["reference"]))
+    sys.path.insert(0, manifest["reference"])
     from arena import run_match
     from environment import Environment
 
