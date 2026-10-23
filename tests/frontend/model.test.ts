@@ -166,3 +166,17 @@ describe('human board interactions', () => {
     expect(inactive).not.toContain('data-action=');
   });
 });
+
+describe('human replay metadata', () => {
+  it('preserves player kinds and rejects unknown kinds', () => {
+    const value = replay();
+    value.players[0].kind = 'human';
+    value.players[1].kind = 'agent';
+    expect(parseReplay(JSON.stringify(value)).players.map((player) => player.kind)).toEqual([
+      'human',
+      'agent',
+    ]);
+    value.players[0].kind = 'spectator' as 'human';
+    expect(() => parseReplay(JSON.stringify(value))).toThrow();
+  });
+});

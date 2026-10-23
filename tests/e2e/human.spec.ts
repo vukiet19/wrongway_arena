@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 test.afterEach(async ({ page, request }) => {
@@ -27,6 +28,7 @@ test('human mode selects one agent and a side while preserving default agent ser
   await page.locator('#file-0').setInputFiles(path.resolve('public/examples/runner.py'));
   await expect(page.locator('#start')).toBeEnabled();
   await page.locator('#human-side').selectOption('0');
+  await page.locator('#max-turns').fill('4');
   await page.locator('#start').click();
   await expect(page.locator('#board-status')).toHaveText('Lượt của bạn');
   await expect(page.locator('#stop')).toBeEnabled();
@@ -46,10 +48,45 @@ test('human mode selects one agent and a side while preserving default agent ser
   ).toBe(true);
   await wallTargets.first().click();
   await expect(page.locator('#turn-counter')).toHaveText('Lượt 4 / 4');
+  await expect(page.locator('#human-controls')).toBeHidden();
+  await expect(page.locator('#score-card')).toBeHidden();
+  await expect(page.locator('#turn-log')).toContainText('Bạn ·');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#download').click();
+  const download = await downloadPromise;
+  const replayPath = path.resolve('test-results/human-replay.json');
+  await download.saveAs(replayPath);
+  const replay = JSON.parse(await readFile(replayPath, 'utf8'));
+  expect(replay.format_version).toBe(1);
+  expect(replay.final_state.done).toBe(true);
+  expect(replay.reason).toBe('max_turns');
+  expect(replay.players.map((player: { kind: string }) => player.kind)).toEqual(['human', 'agent']);
+  expect(
+    replay.turns.some((turn: { action: { type: string } }) => turn.action.type === 'wall'),
+  ).toBe(true);
+  await page.locator('#replay-file').setInputFiles(replayPath);
+  await expect(page.locator('#score-card')).toBeHidden();
+  await page.locator('#timeline').fill('1');
+  await expect(page.locator('#turn-log')).toContainText('Bạn ·');
 
   await page.locator('#timeline').fill('0');
   await expect(page.locator('#human-controls')).toBeHidden();
   await expect(page.locator('#board [data-action]')).toHaveCount(0);
   await page.locator('#live').click();
+  await expect(page.locator('#human-controls')).toBeHidden();
+});
+
+test('the top-side choice lets the agent open automatically', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#connection-label')).toHaveText('Backend đã kết nối');
+  await page.locator('#mode').selectOption('human-vs-agent');
+  await page.locator('#human-side').selectOption('1');
+  await page.locator('#max-turns').fill('4');
+  await page.locator('#file-0').setInputFiles(path.resolve('public/examples/runner.py'));
+  await page.locator('#start').click();
+  await expect(page.locator('#turn-counter')).toHaveText('Lượt 1 / 1');
+  await expect(page.locator('#board-status')).toHaveText('Lượt của bạn');
+  await expect(page.locator('#turn-log')).toContainText('runner.py ·');
   await expect(page.locator('#human-controls')).toBeVisible();
 });

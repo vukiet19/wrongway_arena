@@ -172,7 +172,7 @@ def test_stale_and_illegal_human_actions_do_not_advance_turn(client):
 
 
 def test_top_side_agent_opens_before_human_prompt(client):
-    response = create_human(client, side=1)
+    response = create_human(client, side=1, max_turns=2)
     assert response.status_code == 201, response.text
     events = response.json()["events"]
     first_turn = next(event["record"] for event in events if event["type"] == "turn")
@@ -182,6 +182,42 @@ def test_top_side_agent_opens_before_human_prompt(client):
     assert prompt["state_turn"] == 1
     session = client.app.state.manager.sessions[response.json()["id"]]
     assert session.manifest["human_side"] == 1
+    finished = submit(
+        client, response.json()["id"], prompt, {"type": "move", "to": prompt["legal_moves"][0]}
+    )
+    assert finished.status_code == 200, finished.text
+    assert finished.json()["status"] == "complete"
+    summary = next(
+        event["summary"] for event in finished.json()["events"] if event["type"] == "round_end"
+    )
+    assert summary["winner"] is None
+    assert summary["reason"] == "max_turns"
+    replay = client.get(f"/api/sessions/{response.json()['id']}/replay/0").json()
+    assert replay["format_version"] == 1
+    assert [player["kind"] for player in replay["players"]] == ["agent", "human"]
+
+
+def test_human_goal_win_is_included_in_v1_replay(client):
+    passing_agent = b"def choose_action(observation):\n    return {'type': 'pass'}\n"
+    response = create_human(client, source=passing_agent, max_turns=30)
+    assert response.status_code == 201, response.text
+    session_id = response.json()["id"]
+    events = response.json()["events"]
+
+    for _ in range(8):
+        prompt = next(event for event in events if event["type"] == "human_turn")
+        destination = min(prompt["legal_moves"], key=lambda cell: cell[0])
+        result = submit(client, session_id, prompt, {"type": "move", "to": destination})
+        assert result.status_code == 200, result.text
+        events = result.json()["events"]
+
+    assert result.json()["status"] == "complete"
+    summary = next(event["summary"] for event in events if event["type"] == "round_end")
+    assert summary["winner"] == 0
+    assert summary["winner_name"] == "Bạn"
+    replay = client.get(f"/api/sessions/{session_id}/replay/0").json()
+    assert replay["final_state"]["termination_reason"] == "goal"
+    assert [player["kind"] for player in replay["players"]] == ["human", "agent"]
 
 
 def test_agent_timeout_is_recorded_after_human_move(client):

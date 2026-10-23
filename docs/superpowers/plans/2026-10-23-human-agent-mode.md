@@ -56,16 +56,16 @@
 - `Manager.create(sources: list[bytes], names: list[str], rounds: int, seed: int, max_turns: int, mode: str = "agent-vs-agent", human_side: int | None = None) -> Session` stores `mode` and `human_side` in the worker manifest.
 - Agent-versus-agent requires both uploads and keeps existing 1–2 round behavior. Human-versus-agent requires exactly one upload, a side of 0 or 1, and one round.
 
-- [ ] **Step 1: Write failing API validation tests**
+- [x] **Step 1: Write failing API validation tests**
   - Add tests for a valid human session with one agent; missing agent; second upload supplied; invalid side; unknown mode; and unchanged valid two-agent creation.
-- [ ] **Step 2: Run tests and verify the expected failures**
+- [x] **Step 2: Run tests and verify the expected failures**
   - Run: `.venv\Scripts\python.exe -m pytest -q tests/backend/test_human_mode.py tests/backend/test_api.py`
   - Expected: human-mode form fields are rejected or ignored before implementation; existing agent-versus-agent tests pass.
-- [ ] **Step 3: Implement mode parsing and session manifest fields**
+- [x] **Step 3: Implement mode parsing and session manifest fields**
   - Make `agent_b` optional at the API boundary, validate the mode/upload/side matrix before creating files, force one human round, and persist `mode`/`human_side` in the manifest.
-- [ ] **Step 4: Re-run focused API tests**
+- [x] **Step 4: Re-run focused API tests**
   - Expected: all mode-matrix cases and existing session-creation tests pass.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `feat(api): accept human versus agent sessions`
 
 ### Task 2: Run human turns through the course engine
@@ -83,19 +83,19 @@
 - Worker input `{"type":"human_action","state_turn":int,"action":object}` is accepted only if its turn matches and action is in the current observation’s legal moves or legal wall actions. Invalid input emits a rejection and a fresh prompt without changing the game.
 - Human turns use the same turn-record fields as agent turns. Player metadata adds `kind`; game summaries/replays keep format version 1.
 
-- [ ] **Step 1: Write failing worker/API integration tests**
+- [x] **Step 1: Write failing worker/API integration tests**
   - Test human-bottom initial prompt, human move followed by agent reply, horizontal/vertical wall legality, rejected stale/illegal action without a turn increment, top-side agent opening, agent timeout/error recording, wrong-mode/out-of-turn HTTP rejection, and cancellation while awaiting input.
-- [ ] **Step 2: Run the focused tests and confirm expected failures**
+- [x] **Step 2: Run the focused tests and confirm expected failures**
   - Run: `.venv\Scripts\python.exe -m pytest -q tests/backend/test_human_mode.py`
   - Expected: missing human-turn event/action endpoint or unsupported session state; existing tests remain unaffected.
-- [ ] **Step 3: Implement worker-owned human game loop and action protocol**
+- [x] **Step 3: Implement worker-owned human game loop and action protocol**
   - Keep `run_match()` for agent-versus-agent sessions. For human mode, use the course `Environment` and `StudentAgent` directly inside `worker.py`; process the agent’s opening turn automatically when player 0 is the agent; stop at each human prompt; validate before `Environment.step`; use `skip_turn()` for agent timeout/error results; produce normal turn/replay summaries.
-- [ ] **Step 4: Implement serialized session submission and authenticated endpoint**
+- [x] **Step 4: Implement serialized session submission and authenticated endpoint**
   - Add session-level `human_action` handling under the existing lock/compute controls; stop `_batch()` at the next human prompt or terminal event; handle stop/cancel input while waiting.
-- [ ] **Step 5: Run backend integration and regression tests**
+- [x] **Step 5: Run backend integration and regression tests**
   - Run: `.venv\Scripts\python.exe -m pytest -q tests/backend/test_human_mode.py tests/backend/test_api.py`
   - Expected: all human cases pass and existing agent-versus-agent pair/replay/timeout tests pass.
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   - `feat(match): process human turns in the arena worker`
 
 ### Task 3: Add mode and side selection to the setup UI
@@ -112,17 +112,17 @@
 - `HumanTurnEvent` contains `{ type: "human_turn"; round: number; state_turn: number; state: State; legal_moves: Cell[]; legal_walls: { orientation: "H" | "V"; row: number; col: number }[] }`.
 - Human setup shows one agent upload and a top/bottom choice; the existing two-agent setup remains the default.
 
-- [ ] **Step 1: Write a failing browser setup test**
+- [x] **Step 1: Write a failing browser setup test**
   - Assert default two-agent controls remain visible; selecting human mode hides the second upload and paired-round option, reveals side selection, and enables start with one valid `.py` file.
-- [ ] **Step 2: Run the new browser test and verify it fails on missing controls**
+- [x] **Step 2: Run the new browser test and verify it fails on missing controls**
   - Run: `npm.cmd run test:e2e -- tests/e2e/human.spec.ts`
   - Expected: the mode and side controls are not found.
-- [ ] **Step 3: Implement mode-aware form rendering and creation request**
+- [x] **Step 3: Implement mode-aware form rendering and creation request**
   - Send `mode`, `human_side`, and only `agent_a` in human mode; keep the existing two-upload request in agent mode. Apply `human_turn` events into frontend session state.
-- [ ] **Step 4: Re-run the setup browser test and existing UI tests**
+- [x] **Step 4: Re-run the setup browser test and existing UI tests**
   - Run: `npm.cmd run test:e2e -- tests/e2e/human.spec.ts tests/e2e/arena.spec.ts`
   - Expected: the mode form works and all existing agent-versus-agent browser flows remain unchanged.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `feat(ui): add human match setup`
 
 ### Task 4: Make the board accept legal human actions
@@ -141,18 +141,18 @@
 - UI submits the selected target as `{state_turn, action}` to `/api/sessions/{id}/action`; it disables input until the next prompt or terminal result.
 - `ArenaAPI.submitHumanAction(sessionId: string, stateTurn: number, action: Record<string, unknown>): Promise<Batch>` sends that request through the existing authenticated API client.
 
-- [ ] **Step 1: Write failing board rendering tests**
+- [x] **Step 1: Write failing board rendering tests**
   - Assert only provided legal moves and selected-orientation wall anchors receive interactive markers; inactive boards contain no actionable targets.
-- [ ] **Step 2: Run the focused frontend test and verify it fails**
+- [x] **Step 2: Run the focused frontend test and verify it fails**
   - Run: `npm.cmd test -- --run tests/frontend/model.test.ts`
   - Expected: `BoardInteraction` markers/attributes are absent.
-- [ ] **Step 3: Implement board interaction rendering and event delegation**
+- [x] **Step 3: Implement board interaction rendering and event delegation**
   - Add clickable SVG targets; add “Đi quân”, “Tường ngang”, and “Tường dọc” controls; submit actions with the prompt’s `state_turn`; show action rejection and agent status via existing notices/status text.
-- [ ] **Step 4: Verify frontend unit tests and focused browser actions**
+- [x] **Step 4: Verify frontend unit tests and focused browser actions**
   - Run: `npm.cmd test -- --run tests/frontend/model.test.ts`
   - Run: `npm.cmd run test:e2e -- tests/e2e/human.spec.ts`
   - Expected: legal targets render as specified; human move and wall actions reach the worker; clicks while inactive do not submit.
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `feat(ui): support legal human moves and walls`
 
 ### Task 5: Complete the human match, replay, and documentation flow
@@ -168,15 +168,15 @@
 - Completed human games expose the existing summary fields and replay version 1; the human/agent `kind` values survive replay export/import.
 - Human matches do not enable paired tournament scoring; normal agent-versus-agent scoring and controls are unchanged.
 
-- [ ] **Step 1: Add failing replay and end-to-end assertions**
+- [x] **Step 1: Add failing replay and end-to-end assertions**
   - Check winner/draw summary, `kind` metadata, replay download/import, both side choices, one wall placement, an agent reply, and a short game ending at the turn limit.
-- [ ] **Step 2: Run focused tests and verify the uncovered replay behavior**
+- [x] **Step 2: Run focused tests and verify the uncovered replay behavior**
   - Run: `.venv\Scripts\python.exe -m pytest -q tests/backend/test_human_mode.py`
   - Run: `npm.cmd run test:e2e -- tests/e2e/human.spec.ts`
   - Expected: any missing replay metadata or completion behavior fails.
-- [ ] **Step 3: Implement replay compatibility and user instructions**
+- [x] **Step 3: Implement replay compatibility and user instructions**
   - Preserve replay format version 1, identify player kinds, show human/agent names in the existing result and log, and document startup and controls in Vietnamese README text.
-- [ ] **Step 4: Run full verification**
+- [x] **Step 4: Run full verification**
   - `.venv\Scripts\python.exe -m pytest -q`
   - `.venv\Scripts\python.exe -m ruff check backend tests\backend tools`
   - `.venv\Scripts\python.exe -m ruff format --check backend tests\backend tools`
@@ -185,10 +185,11 @@
   - `npm.cmd run build`
   - `npm.cmd run test:e2e`
   - Expected: all commands exit successfully; the full existing agent-versus-agent suite and new human-versus-agent flow pass.
-- [ ] **Step 5: Review and commit**
+- [x] **Step 5: Review and commit**
   - Inspect `git diff --check` and the full diff; stage only feature files and tests.
   - `feat(match): finish human versus agent mode`
 
 ## Execution Notes
 
 Run each test command in its own shell step. Keep browser tests sequential with the build/server they depend on. Do not publish the backend or modify the course engine. Push completed Conventional Commits to `main` only after the full verification passes.
+

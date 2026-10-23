@@ -179,6 +179,7 @@ export function parseReplay(text: string): Replay {
         p.id === index &&
         typeof p.name === 'string' &&
         p.name.length <= 200 &&
+        (p.kind === undefined || p.kind === 'human' || p.kind === 'agent') &&
         (p.agent === undefined || [0, 1].includes(p.agent)),
     ) ||
     (value.players[0]?.agent !== undefined && value.players[0].agent === value.players[1]?.agent) ||

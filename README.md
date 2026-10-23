@@ -31,6 +31,8 @@ The board has 9 rows and 9 columns. The first row (0) and last row (8) are goal 
 
 Choose two `.py` files, set the seed and turn limit, and start a match. A paired series defaults to two games and swaps player order for the second game. The Arena assigns 3 points for a win, 1 for a draw, and 0 for a loss, following agent identity across the swap. You can pause between turns, step through the game, seek on the timeline, change rounds, and download a replay. A downloaded replay can be opened later without a running backend.
 
+To play yourself, change **Chế độ thi đấu** to **Bạn đấu agent**, upload one `.py` file, then choose whether you start at the bottom or top. The Arena runs one game without paired-series scoring. On your turn, choose **Đi quân**, **Tường ngang**, or **Tường dọc**, then click one of the engine-highlighted legal targets. Your turn has no agent timer; the uploaded agent keeps the normal five-second startup and one-second action limits. The result and replay identify which player was human or agent.
+
 The runner applies a 5-second agent startup deadline and a 1-second deadline per action. A timed-out, invalid, or crashed agent is recorded in the match journal. The backend uses separate Python processes and keeps uploaded agents and match files under the ignored `.local/` directory.
 
 This local mode isolates crashes and enforces time limits, but it is not an operating-system security sandbox. Run only Python agents you trust on your computer. The Arena does not upload agents to GitHub or copy instructor files into this repository.

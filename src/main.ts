@@ -71,14 +71,14 @@ q('#app').innerHTML = `
         <div class="board-paper"><div class="board-heading"><div><span class="live-dot"></span><span id="board-status">Sẵn sàng lên sàn</span></div><label class="round-picker"><span class="sr-only">Chọn ván</span><select id="round-select"><option value="0">Ván 1</option></select></label></div><div id="human-controls" class="human-controls" hidden role="toolbar" aria-label="Chọn hành động"><div class="human-tools"><button id="tool-move" data-tool="move" aria-pressed="true">Đi quân</button><button id="tool-horizontal" data-tool="horizontal" aria-pressed="false">Tường ngang</button><button id="tool-vertical" data-tool="vertical" aria-pressed="false">Tường dọc</button></div><span id="human-action-hint">Chọn ô được đánh dấu trên bàn cờ.</span></div><div id="board" tabindex="0"></div><div class="board-footnote"><span><i class="legend-line"></i> hàng đích</span><span>9 × 9 ô · hàng đầu/cuối là đích</span></div></div>
         <div class="playback"><div class="playback-main"><button id="previous" class="icon-button transport" aria-label="Lùi một lượt" disabled>${icon('back')}</button><button id="play" class="button play-button" disabled>${icon('play')}<span>Tiếp tục</span></button><button id="next" class="icon-button transport" aria-label="Tiến một lượt" disabled>${icon('next')}</button><div class="speed-control"><label for="speed">Tốc độ xem</label><select id="speed"><option value="1200">0.5×</option><option value="600" selected>1×</option><option value="200">2×</option><option value="0">Nhanh nhất</option></select></div></div><div class="timeline-row"><span id="turn-counter">Lượt <b>0</b> / 0</span><input id="timeline" type="range" min="0" max="0" value="0" aria-label="Xem lại lượt" disabled><button id="live" class="live-button" disabled>Về hiện tại</button></div><div id="result-note" class="result-note" role="status">Chọn hai đối thủ, rồi bắt đầu câu chuyện của chúng.</div></div>
       </section>
-      <aside class="insights-column"><div class="section-heading"><span class="section-number">02</span><h2>Theo dõi trận</h2></div><section class="score-card"><div class="card-title"><h3>Bảng điểm</h3><span>thắng 3 · hòa 1</span></div><div class="score-row">${[0, 1].map((i) => `<div class="score-agent agent-${i === 0 ? 'a' : 'b'}"><span class="agent-token">${i === 0 ? 'A' : 'B'}</span><strong id="score-${i}">0</strong><span id="score-name-${i}" class="score-name">Agent ${i === 0 ? 'A' : 'B'}</span><small id="wins-${i}">0 thắng · 0 hòa</small></div>`).join('')}<span class="versus">:</span></div><p id="series-progress">Chưa có ván hoàn thành</p></section>
+      <aside class="insights-column"><div class="section-heading"><span class="section-number">02</span><h2>Theo dõi trận</h2></div><section class="score-card" id="score-card"><div class="card-title"><h3>Bảng điểm</h3><span>thắng 3 · hòa 1</span></div><div class="score-row">${[0, 1].map((i) => `<div class="score-agent agent-${i === 0 ? 'a' : 'b'}"><span class="agent-token">${i === 0 ? 'A' : 'B'}</span><strong id="score-${i}">0</strong><span id="score-name-${i}" class="score-name">Agent ${i === 0 ? 'A' : 'B'}</span><small id="wins-${i}">0 thắng · 0 hòa</small></div>`).join('')}<span class="versus">:</span></div><p id="series-progress">Chưa có ván hoàn thành</p></section>
       <section class="journal"><div class="card-title"><h3>Nhật ký nước đi</h3><span id="thinking" class="thinking" hidden>đang nghĩ<span>…</span></span></div><div id="turn-log" class="turn-log"><div class="log-empty"><svg viewBox="0 0 110 70" aria-hidden="true"><path d="m20 52 16-30 17 14 18-25 21 12M79 17l14 4-2 14M17 59q38 5 76 0"/></svg><p>Mỗi nước đi,<br>một chút bất ngờ.</p><span>Nhật ký sẽ xuất hiện ở đây.</span></div></div><div class="journal-footer"><button id="download" class="text-button" disabled>${icon('download')} Tải replay ván này</button><button id="stop" class="text-button stop-button" disabled>Kết thúc trận</button></div></section><div class="rules-note"><span class="hand-star" aria-hidden="true">✳</span><p>Vào hàng đích ở đầu đối diện là thắng.<br>Đặt tường, nhưng luôn để lại một lối đi.</p></div></aside>
     </section>
     <footer class="site-footer"><span>Vẽ đường đi. Nghĩ đường xa.</span><span>Wrongway Arena <i>·</i> 1 giây / lượt <i>·</i> luật 9×9</span></footer>
   </main>
   <input id="replay-file" class="sr-only" type="file" accept=".json,application/json" aria-label="Chọn replay JSON">
   <dialog id="connection-dialog"><form id="connection-form"><div class="dialog-heading"><h2>Kết nối sân đấu</h2><button type="button" class="icon-button close-dialog" aria-label="Đóng">${icon('close')}</button></div><p>Chạy backend trên máy bạn, rồi nhập địa chỉ bên dưới.</p><label for="backend-url">Địa chỉ backend</label><input id="backend-url" type="url" required placeholder="http://127.0.0.1:8000"><p class="helper">Backend local mặc định: http://127.0.0.1:8000</p><p id="connection-error" class="field-error" role="alert"></p><button class="button primary" id="connect-submit">Kết nối ${icon('link')}</button></form></dialog>
-  <dialog id="help-dialog"><div class="dialog-heading"><h2>Một chút trước khi đấu</h2><button class="icon-button close-dialog" aria-label="Đóng">${icon('close')}</button></div><ol class="help-list"><li>Chọn hai file Python có hàm <code>choose_action(observation)</code>.</li><li>Mỗi lượt, agent đi quân, đặt một tường hoặc nhường lượt. Vào hàng đích ở đầu đối diện là thắng.</li><li>Bàn có 9 hàng và 9 cột; hàng đầu (0) và hàng cuối (8) là đích. Agent dùng được trực tiếp với engine môn học.</li><li>Agent có 1 giây cho mỗi nước đi và 5 giây để nạp file. Lỗi hoặc quá giờ làm mất lượt.</li><li>Dùng nút tạm dừng, thanh thời gian hoặc phím ← / → để xem lại. Tốc độ xem không thay đổi ngân sách suy nghĩ.</li></ol><button class="button primary close-dialog">Đã hiểu, lên sàn thôi ${icon('arrow')}</button></dialog>
+  <dialog id="help-dialog"><div class="dialog-heading"><h2>Một chút trước khi đấu</h2><button class="icon-button close-dialog" aria-label="Đóng">${icon('close')}</button></div><ol class="help-list"><li>Chọn chế độ agent đấu agent với hai file Python, hoặc bạn đấu agent với một file có hàm <code>choose_action(observation)</code>.</li><li>Trong chế độ người chơi, chọn phía trên hoặc dưới; đến lượt bạn, chọn loại hành động rồi bấm một ô được đánh dấu hợp lệ.</li><li>Mỗi lượt, người chơi hoặc agent đi quân hay đặt tường. Vào hàng đích ở đầu đối diện là thắng.</li><li>Bàn có 9 hàng và 9 cột; hàng đầu (0) và hàng cuối (8) là đích. Agent dùng được trực tiếp với engine môn học.</li><li>Agent có 1 giây cho mỗi nước đi và 5 giây để nạp file. Lỗi hoặc quá giờ làm mất lượt.</li><li>Dùng nút tạm dừng, thanh thời gian hoặc phím ← / → để xem lại. Tốc độ xem không thay đổi ngân sách suy nghĩ.</li></ol><button class="button primary close-dialog">Đã hiểu, lên sàn thôi ${icon('arrow')}</button></dialog>
 `;
 
 const api = new ArenaAPI();
@@ -141,6 +141,7 @@ function atEnd() {
 }
 function render() {
   const round = rounds[selectedRound] ?? placeholder;
+  const humanMatch = round.players.some((player) => player.kind === 'human');
   const state = cursor ? (round.turns[cursor - 1]?.state ?? round.initial) : round.initial;
   const humanActive = canHumanAct();
   const interaction = humanPrompt
@@ -194,6 +195,7 @@ function render() {
           : 'Chưa có agent';
   }
   const points = scores(rounds);
+  q('#score-card').toggleAttribute('hidden', humanMatch);
   points.forEach((row, i) => {
     q(`#score-${i}`).textContent = String(row.points);
     q(`#wins-${i}`).textContent = `${row.wins} thắng · ${row.draws} hòa`;
@@ -201,9 +203,13 @@ function render() {
     q(`#score-name-${i}`).textContent = player?.name ?? `Agent ${i === 0 ? 'A' : 'B'}`;
   });
   const finished = rounds.filter((r) => r.summary).length;
-  q('#series-progress').textContent = finished
-    ? `${finished} / ${seriesTotal} ván đã hoàn thành`
-    : 'Chưa có ván hoàn thành';
+  q('#series-progress').textContent = humanMatch
+    ? round.summary
+      ? 'Ván đấu đã hoàn thành'
+      : 'Một ván · người đấu agent'
+    : finished
+      ? `${finished} / ${seriesTotal} ván đã hoàn thành`
+      : 'Chưa có ván hoàn thành';
   q('#board-status').textContent = busy
     ? 'Agent đang suy nghĩ…'
     : humanPrompt && sessionStatus === 'waiting_human'
@@ -279,7 +285,14 @@ function renderLog(round: Round) {
     const label = document.createElement('strong');
     label.textContent = describe(turn);
     const detail = document.createElement('small');
-    detail.textContent = `Agent ${agentFor(round, turn.player) === 0 ? 'A' : 'B'} · ${(turn.elapsed * 1000).toFixed(0)} ms`;
+    const player = round.players[turn.player];
+    const playerLabel =
+      player?.kind === 'human'
+        ? 'Bạn'
+        : player?.kind === 'agent'
+          ? player.name
+          : `Agent ${agentFor(round, turn.player) === 0 ? 'A' : 'B'}`;
+    detail.textContent = `${playerLabel} · ${(turn.elapsed * 1000).toFixed(0)} ms`;
     content.append(label, detail);
     button.append(number, content);
     if (turn.error) button.title = turn.error;
