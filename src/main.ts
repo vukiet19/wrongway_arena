@@ -15,6 +15,7 @@ import {
   parseReplay,
   scores,
   type Event,
+  type HumanTurnEvent,
   type Round,
 } from './model';
 
@@ -49,6 +50,7 @@ q('#app').innerHTML = `
     <section class="workspace" aria-label="Sân đấu agent">
       <aside class="setup-column">
         <div class="section-heading"><span class="section-number">01</span><h2>Chọn đối thủ</h2></div>
+        <label class="mode-setting" for="mode">Chế độ thi đấu<select id="mode"><option value="agent-vs-agent">Agent đấu agent</option><option value="human-vs-agent">Bạn đấu agent</option></select></label>
         <div class="agent-uploads">${[0, 1]
           .map(
             (i) => `
@@ -60,7 +62,7 @@ q('#app').innerHTML = `
           )
           .join('')}
         </div>
-        <div class="match-settings"><label class="paired-label"><input type="checkbox" id="paired" checked><span class="checkbox-mark">${icon('check')}</span><span>Đấu 2 ván, đổi bên</span>${icon('swap')}</label><p>Mỗi agent được đi trước một lần.</p><div class="small-fields"><label>Seed<input id="seed" type="number" min="0" max="2147483647" value="0"></label><label>Giới hạn lượt<input id="max-turns" type="number" min="2" max="500" value="500"></label></div></div>
+        <div class="match-settings"><label class="paired-label" id="paired-option"><input type="checkbox" id="paired" checked><span class="checkbox-mark">${icon('check')}</span><span>Đấu 2 ván, đổi bên</span>${icon('swap')}</label><p id="paired-note">Mỗi agent được đi trước một lần.</p><label class="human-side-setting" id="human-side-setting" hidden for="human-side">Bạn chơi phía<select id="human-side"><option value="0">Dưới · xuất phát hàng cuối</option><option value="1">Trên · xuất phát hàng đầu</option></select></label><div class="small-fields"><label>Seed<input id="seed" type="number" min="0" max="2147483647" value="0"></label><label>Giới hạn lượt<input id="max-turns" type="number" min="2" max="500" value="500"></label></div></div>
         <button id="start" class="button primary start-button" disabled>Bắt đầu thi đấu ${icon('arrow')}</button>
         <button id="demo" class="demo-button">Chưa có file? <span>Thử hai agent mẫu ↗</span></button>
         <p class="local-note">${icon('link')} Python chạy trên máy bạn.<br>Chỉ dùng những file bạn tin cậy.</p>
@@ -91,6 +93,7 @@ let session = '',
   selectedRound = 0,
   cursor = 0;
 let seriesTotal = 0;
+let humanPrompt: HumanTurnEvent | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
 const placeholder: Round = {
   players: [
@@ -101,6 +104,10 @@ const placeholder: Round = {
   initial: initialState(),
   turns: [],
 };
+
+function humanMode() {
+  return q<HTMLSelectElement>('#mode').value === 'human-vs-agent';
+}
 
 function notify(message: string) {
   q('#notice-text').textContent = message;
@@ -122,9 +129,15 @@ function render() {
   const round = rounds[selectedRound] ?? placeholder;
   const state = cursor ? (round.turns[cursor - 1]?.state ?? round.initial) : round.initial;
   q('#board').innerHTML = boardSVG(state, round, round.turns[cursor - 1]);
+  const isHumanMode = humanMode();
+  q('#upload-1').toggleAttribute('hidden', isHumanMode);
+  q('#paired-option').toggleAttribute('hidden', isHumanMode);
+  q('#paired-note').toggleAttribute('hidden', isHumanMode);
+  q('#human-side-setting').toggleAttribute('hidden', !isHumanMode);
   q('#connection').classList.toggle('connected', connected);
   q('#connection-label').textContent = connected ? 'Backend đã kết nối' : 'Kết nối backend';
-  q<HTMLButtonElement>('#start').disabled = !connected || files.some((f) => !f) || creating;
+  q<HTMLButtonElement>('#start').disabled =
+    !connected || !files[0] || (!isHumanMode && !files[1]) || creating;
   q('#start').innerHTML = creating
     ? 'Đang chuẩn bị…'
     : `${session ? 'Tạo trận mới' : 'Bắt đầu thi đấu'} ${icon('arrow')}`;
@@ -160,15 +173,17 @@ function render() {
     : 'Chưa có ván hoàn thành';
   q('#board-status').textContent = busy
     ? 'Agent đang suy nghĩ…'
-    : !rounds.length
-      ? 'Sẵn sàng lên sàn'
-      : cursor < round.turns.length
-        ? 'Đang xem lại'
-        : round.summary
-          ? 'Ván đấu đã kết thúc'
-          : playing
-            ? 'Đang thi đấu'
-            : 'Đã tạm dừng';
+    : humanPrompt && sessionStatus === 'waiting_human'
+      ? 'Lượt của bạn'
+      : !rounds.length
+        ? 'Sẵn sàng lên sàn'
+        : cursor < round.turns.length
+          ? 'Đang xem lại'
+          : round.summary
+            ? 'Ván đấu đã kết thúc'
+            : playing
+              ? 'Đang thi đấu'
+              : 'Đã tạm dừng';
   q('.live-dot').classList.toggle('active', playing || busy);
   const select = q<HTMLSelectElement>('#round-select');
   select.replaceChildren(
@@ -203,9 +218,11 @@ function render() {
       ? round.summary.winner === null
         ? 'Một ván hòa. Hai chiến thuật, chưa bên nào nhường bước.'
         : `${round.players[round.summary.winner].name} thắng ván ${selectedRound + 1}!`
-      : rounds.length
-        ? 'Xem từng nước đi. Tìm điều khiến chiến thuật khác biệt.'
-        : 'Chọn hai đối thủ, rồi bắt đầu câu chuyện của chúng.';
+      : humanPrompt && sessionStatus === 'waiting_human'
+        ? 'Đến lượt bạn. Chọn nước đi trên bàn cờ.'
+        : rounds.length
+          ? 'Xem từng nước đi. Tìm điều khiến chiến thuật khác biệt.'
+          : 'Chọn hai đối thủ, rồi bắt đầu câu chuyện của chúng.';
   renderLog(round);
 }
 
@@ -249,10 +266,14 @@ function apply(events: Event[]) {
       };
       selectedRound = event.round;
       cursor = 0;
+      humanPrompt = null;
     } else if (event.type === 'turn') {
       rounds[event.round].turns.push(event.record);
       selectedRound = event.round;
       cursor = rounds[event.round].turns.length;
+      humanPrompt = null;
+    } else if (event.type === 'human_turn') {
+      humanPrompt = event;
     } else if (event.type === 'round_end') rounds[event.round].summary = event.summary;
   }
 }
@@ -321,7 +342,7 @@ function selectFile(index: number, file?: File) {
   render();
 }
 async function start() {
-  if (!connected || files.some((file) => !file)) {
+  if (!connected || !files[0] || (!humanMode() && !files[1])) {
     q<HTMLDialogElement>('#connection-dialog').showModal();
     return;
   }
@@ -345,8 +366,12 @@ async function start() {
     if (session) await api.request(`/sessions/${session}`, 'DELETE').catch(() => {});
     const form = new FormData();
     form.set('agent_a', files[0]!);
-    form.set('agent_b', files[1]!);
-    form.set('rounds', q<HTMLInputElement>('#paired').checked ? '2' : '1');
+    form.set('mode', humanMode() ? 'human-vs-agent' : 'agent-vs-agent');
+    if (humanMode()) form.set('human_side', q<HTMLSelectElement>('#human-side').value);
+    else {
+      form.set('agent_b', files[1]!);
+      form.set('rounds', q<HTMLInputElement>('#paired').checked ? '2' : '1');
+    }
     form.set('seed', String(seed));
     form.set('max_turns', String(maxTurns));
     const batch = await api.request<Batch>('/sessions', 'POST', form);
@@ -359,7 +384,7 @@ async function start() {
     sessionStorage.setItem('wrongway-session', session);
     apply(batch.events);
     q('#notice').hidden = true;
-    playing = true;
+    playing = !humanMode();
   } catch (error) {
     notify(message(error));
   } finally {
@@ -440,6 +465,7 @@ for (const index of [0, 1]) {
   });
 }
 q('#start').addEventListener('click', () => void start());
+q<HTMLSelectElement>('#mode').addEventListener('change', render);
 q('#demo').addEventListener('click', async () => {
   try {
     for (const [index, name] of ['runner.py', 'barricade.py'].entries()) {

@@ -16,6 +16,7 @@ export interface Player {
   id: number;
   name: string;
   agent?: number;
+  kind?: 'human' | 'agent';
 }
 export interface Turn {
   turn: number;
@@ -50,6 +51,14 @@ export interface Round {
   summary?: Summary;
   imported?: Replay;
 }
+export interface HumanTurnEvent {
+  type: 'human_turn';
+  round: number;
+  state_turn: number;
+  state: State;
+  legal_moves: Cell[];
+  legal_walls: { orientation: 'H' | 'V'; row: number; col: number }[];
+}
 export type Event =
   | {
       type: 'round_start';
@@ -59,6 +68,8 @@ export type Event =
       initial_state: State;
     }
   | { type: 'turn'; round: number; record: Turn }
+  | HumanTurnEvent
+  | { type: 'action_rejected'; state_turn: number; reason: string }
   | { type: 'round_end'; round: number; summary: Summary }
   | { type: 'complete' | 'stopped' | 'failed'; message?: string };
 
